@@ -1,0 +1,1844 @@
+<!doctype html>
+<html lang="en" data-visualize-standalone>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="An interactive educational model of wave-speed limitation, dynamic airway compression, the equal-pressure point, and effort-independent expiratory flow.">
+<title>Wave-Speed Theory Simulator</title>
+<style>:root {
+  color-scheme: light dark;
+  background-color: transparent !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --main-surface-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: light-dark(rgb(26 28 31), rgb(255 255 255));
+  --card: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --card-foreground: var(--foreground);
+  --popover: light-dark(rgb(255 255 255), rgb(45 45 45));
+  --popover-foreground: var(--foreground);
+  --primary: light-dark(rgb(51 156 255), rgb(131 195 255));
+  --primary-foreground: light-dark(rgb(255 255 255), rgb(13 13 13));
+  --secondary: light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%));
+  --secondary-foreground: var(--foreground);
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: light-dark(
+    rgb(26 28 31 / 49.4%),
+    rgb(255 255 255 / 49.8%)
+  );
+  --accent: light-dark(rgb(229 242 255), rgb(13 39 63));
+  --accent-foreground: var(--primary);
+  --destructive: light-dark(rgb(226 85 7), rgb(255 133 73));
+  --border: light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%));
+  --input: light-dark(
+    rgb(26 28 31 / 11.8%),
+    color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+  );
+  --ring: light-dark(rgb(51 156 255), rgb(131 195 255 / 76%));
+  --font-size-base: 14px;
+  --red: light-dark(rgb(186 38 35), rgb(250 66 62));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, "Segoe UI", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: 10px;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 17 17'%3E%3Cpath d='M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z'/%3E%3C/svg%3E");
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+  --color-background-primary: var(--background);
+  --color-text-primary: var(--foreground);
+  --color-border-secondary: var(--border);
+}
+
+:root[data-visualize-standalone] {
+  background-color: var(--background) !important;
+}
+
+/* Generic mobile code-block hosts provide light/dark mode but no series palette.
+   AppBlock hosts set all six variables themselves. */
+:root:not([data-app-block-surface]) {
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(#f3883b, #f59a56);
+  --viz-series-3: light-dark(#5dc977, #74d58b);
+  --viz-series-4: light-dark(#eb77b1, #f08fc0);
+  --viz-series-5: light-dark(#9b79ec, #aa91ef);
+  --viz-series-6: light-dark(#3ab9b1, #5acbc2);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html > body {
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+:root:not([data-app-block-surface]) > body {
+  padding: 12px;
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive > .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align="right"]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align="center"]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget > :not(.card) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* The bundled tooltip runtime owns [data-tooltip]. AppBlock's CSS-only
+   pseudo-tooltip can widen dense grids even while hidden. */
+main [data-tooltip]::after {
+  content: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls > .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls > .form-label > :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--interactive-label-primary-default, var(--primary-foreground));
+  background: var(--interactive-bg-primary-default, var(--foreground));
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(
+    in srgb,
+    var(--interactive-label-primary-default, var(--primary-foreground)) 50%,
+    transparent
+  );
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type="file"] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type="file"]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type="file"]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type="color"] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type="checkbox"]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: "";
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type="radio"] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type="radio"]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: "";
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+    [aria-pressed="true"],
+    [aria-selected="true"],
+    .is-selected
+  ) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed="true"], [aria-selected="true"], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget > svg {
+  width: 100%;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+</style>
+<style id="site-shell-styles">
+  html > body {
+    padding: 0;
+    background: var(--background) !important;
+  }
+  .site-header,
+  .site-shell,
+  .site-footer {
+    width: min(1080px, calc(100% - 32px));
+    margin-inline: auto;
+  }
+  .site-header {
+    padding-block: 48px 28px;
+  }
+  .site-kicker {
+    color: var(--muted-foreground);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .site-header h1 {
+    margin-top: 8px;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    letter-spacing: -0.035em;
+  }
+  .site-lede {
+    max-width: 760px;
+    margin-top: 14px;
+    color: var(--muted-foreground);
+    font-size: 1.08rem;
+  }
+  .site-equations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .site-equations code {
+    border: 1px solid var(--border);
+    background: var(--card);
+  }
+  .site-start {
+    margin-top: 18px;
+    padding: 12px 14px;
+    border-left: 3px solid var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
+  }
+  .site-shell {
+    padding-bottom: 32px;
+  }
+  .site-notes {
+    display: grid;
+    grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+    gap: 24px;
+    margin-top: 34px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  .site-notes p {
+    color: var(--muted-foreground);
+  }
+  .site-footer {
+    padding-block: 20px 40px;
+    border-top: 1px solid var(--border);
+    color: var(--muted-foreground);
+  }
+  @media (max-width: 640px) {
+    .site-header,
+    .site-shell,
+    .site-footer {
+      width: min(100% - 20px, 1080px);
+    }
+    .site-header {
+      padding-block: 32px 22px;
+    }
+    .site-notes {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+  }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <p class="site-kicker">Interactive respiratory physiology model</p>
+  <h1>Wave-Speed Theory Simulator</h1>
+  <p class="site-lede">Explore how elastic recoil, expiratory effort, airway geometry, wall stiffness, resistance, and gas density determine the onset of effort-independent expiratory flow.</p>
+  <div class="site-equations" aria-label="Core equations">
+    <code>Ptm = Paw − Ppl</code>
+    <code>u = V̇/A</code>
+    <code>c = √[A/(ρCaw)]</code>
+    <code>at the CP: u = c</code>
+  </div>
+  <p class="site-start"><strong>Start here:</strong> move expiratory effort from low to high. Flow initially rises, then reaches the wave-speed ceiling even as the downstream airway continues to narrow.</p>
+</header>
+<main class="site-shell">
+<div id="wave-speed-theory-simulator">
+  <div class="viz-controls" aria-label="Wave-speed model parameters">
+    <label class="form-label" for="wst-ppl">
+      <span class="wst-label-row"><span>Expiratory effort Ppl</span><output id="wst-ppl-out">10 cmH2O</output></span>
+      <input class="form-range" id="wst-ppl" type="range" min="0" max="40" step="0.5" value="10">
+    </label>
+    <label class="form-label" for="wst-pel">
+      <span class="wst-label-row"><span>Elastic recoil Pel</span><output id="wst-pel-out">8 cmH2O</output></span>
+      <input class="form-range" id="wst-pel" type="range" min="1" max="20" step="0.5" value="8">
+    </label>
+    <label class="form-label" for="wst-area">
+      <span class="wst-label-row"><span>Maximum airway area</span><output id="wst-area-out">350 mm²</output></span>
+      <input class="form-range" id="wst-area" type="range" min="80" max="650" step="10" value="350">
+    </label>
+    <label class="form-label" for="wst-stiffness">
+      <span class="wst-label-row"><span>Tube-law stiffness scale S</span><output id="wst-stiffness-out">2.0 cmH2O</output></span>
+      <input class="form-range" id="wst-stiffness" type="range" min="0.5" max="8" step="0.1" value="2">
+    </label>
+    <label class="form-label" for="wst-resistance">
+      <span class="wst-label-row"><span>Open-airway resistance</span><output id="wst-resistance-out">2.2 cmH2O/L/s</output></span>
+      <input class="form-range" id="wst-resistance" type="range" min="0.6" max="8" step="0.1" value="2.2">
+    </label>
+    <label class="form-label" for="wst-density">
+      <span class="wst-label-row"><span>Gas density ρ</span><output id="wst-density-out">1.20 kg/m³</output></span>
+      <input class="form-range" id="wst-density" type="range" min="0.3" max="2" step="0.05" value="1.2">
+    </label>
+  </div>
+
+  <div class="viz-grid wst-stats" aria-live="polite">
+    <div class="card viz-stat">
+      <div class="text-muted">Mouth flow</div>
+      <div class="viz-stat-value" id="wst-flow-value">—</div>
+      <div class="text-small" id="wst-flow-context">—</div>
+    </div>
+    <div class="card viz-stat">
+      <div class="text-muted">Speed index u/c</div>
+      <div class="viz-stat-value" id="wst-speed-value">—</div>
+      <div class="text-small" id="wst-speed-context">—</div>
+    </div>
+    <div class="card viz-stat">
+      <div class="text-muted">Local transmural pressure</div>
+      <div class="viz-stat-value" id="wst-ptm-value">—</div>
+      <div class="text-small" id="wst-ptm-context">—</div>
+    </div>
+  </div>
+
+  <div class="wst-visual-cluster">
+    <svg id="wst-airway" class="wst-airway" role="img" aria-label="Collapsible airway whose displayed width represents local cross-sectional area, with pressure profile, equal-pressure point, and wave-speed choke point"></svg>
+    <dl class="wst-symbol-legend text-small" aria-label="Airway direction and wave-speed legend">
+      <div><dt>Upstream</dt><dd>alveolar side; source of expiratory flow</dd></div>
+      <div><dt>Downstream</dt><dd>mouth side; direction of expiratory flow</dd></div>
+      <div><dt>u = V̇/A</dt><dd>local mean gas velocity toward the mouth</dd></div>
+      <div><dt>c = √[A/(ρCaw)]</dt><dd>pressure-wave speed relative to the gas</dd></div>
+      <div><dt>Ptm</dt><dd>transmural pressure, Paw − Ppl</dd></div>
+      <div><dt>Caw</dt><dd>local areal compliance, dA/dPtm</dd></div>
+      <div><dt>S</dt><dd>tube-law pressure scale; larger values mean lower compliance</dd></div>
+      <div><dt>u + c</dt><dd>downstream wave velocity relative to the airway</dd></div>
+      <div><dt>u − c</dt><dd>upstream characteristic; equals zero at the CP</dd></div>
+      <div><dt>Airway width</dt><dd>displayed diameter ∝ √A(Ptm); narrowing reflects falling Ptm</dd></div>
+    </dl>
+    <div class="wst-plot-grid">
+      <svg id="wst-local-plot" class="wst-plot" role="img" aria-label="Local flow and airway area versus transmural pressure"></svg>
+      <svg id="wst-effort-plot" class="wst-plot" role="img" aria-label="Expiratory flow versus expiratory effort"></svg>
+    </div>
+  </div>
+  <div class="text-small wst-state" id="wst-state" aria-live="polite"></div>
+</div>
+<section class="site-notes" aria-labelledby="model-scope-heading">
+  <h2 id="model-scope-heading">Model scope</h2>
+  <p>This is a deliberately simplified, steady-state model of one collapsible airway with a logistic tube law and linear upstream dissipative resistance. Airway width represents displayed diameter proportional to √A(Ptm); it does not represent anatomical airway branching. The simulator is intended for physiological education, not clinical prediction.</p>
+</section>
+</main>
+<footer class="site-footer">
+  Based on Dawson and Elliott’s wave-speed formulation and Pedersen &amp; Butler, <em>Expiratory Flow Limitation</em>, Comprehensive Physiology 2011. <a href="https://doi.org/10.1002/cphy.c100025">doi:10.1002/cphy.c100025</a>
+</footer>
+
+<style>
+  #wave-speed-theory-simulator {
+    width: 100%;
+    color: var(--foreground);
+  }
+  #wave-speed-theory-simulator .wst-label-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  #wave-speed-theory-simulator output {
+    color: var(--muted-foreground);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  #wave-speed-theory-simulator .wst-stats {
+    margin-top: 16px;
+  }
+  #wave-speed-theory-simulator .wst-visual-cluster {
+    margin-top: 16px;
+  }
+  #wave-speed-theory-simulator .wst-airway,
+  #wave-speed-theory-simulator .wst-plot {
+    display: block;
+    width: 100%;
+    overflow: visible;
+  }
+  #wave-speed-theory-simulator .wst-airway {
+    height: 235px;
+  }
+  #wave-speed-theory-simulator .wst-plot-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 10px;
+  }
+  #wave-speed-theory-simulator .wst-plot {
+    height: 290px;
+  }
+  #wave-speed-theory-simulator .wst-state {
+    margin-top: 10px;
+    color: var(--muted-foreground);
+  }
+  #wave-speed-theory-simulator .wst-symbol-legend {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px 22px;
+    margin: 6px 0 0;
+  }
+  #wave-speed-theory-simulator .wst-symbol-legend div {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    min-width: 0;
+  }
+  #wave-speed-theory-simulator .wst-symbol-legend dt {
+    flex: 0 0 auto;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  #wave-speed-theory-simulator .wst-symbol-legend dd {
+    margin: 0;
+    color: var(--muted-foreground);
+  }
+  #wave-speed-theory-simulator .wst-axis,
+  #wave-speed-theory-simulator .wst-grid {
+    stroke: var(--border);
+    vector-effect: non-scaling-stroke;
+  }
+  #wave-speed-theory-simulator .wst-axis {
+    stroke-width: 1.2;
+  }
+  #wave-speed-theory-simulator .wst-grid {
+    stroke-width: 1;
+    opacity: 0.55;
+  }
+  #wave-speed-theory-simulator .wst-main-line {
+    fill: none;
+    stroke: var(--viz-series-1);
+    stroke-width: 3;
+    vector-effect: non-scaling-stroke;
+  }
+  #wave-speed-theory-simulator .wst-second-line {
+    fill: none;
+    stroke: var(--viz-series-2);
+    stroke-width: 2.5;
+    stroke-dasharray: 7 5;
+    vector-effect: non-scaling-stroke;
+  }
+  #wave-speed-theory-simulator .wst-reference-line {
+    fill: none;
+    stroke: var(--muted-foreground);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 4;
+    vector-effect: non-scaling-stroke;
+  }
+  #wave-speed-theory-simulator .wst-tangent {
+    fill: none;
+    stroke: var(--viz-series-2);
+    stroke-width: 1.5;
+    opacity: 0.8;
+    vector-effect: non-scaling-stroke;
+  }
+  #wave-speed-theory-simulator .wst-marker-main {
+    fill: var(--background);
+    stroke: var(--viz-series-1);
+    stroke-width: 3;
+    vector-effect: non-scaling-stroke;
+  }
+  #wave-speed-theory-simulator .wst-marker-second {
+    fill: var(--background);
+    stroke: var(--viz-series-2);
+    stroke-width: 2.5;
+    vector-effect: non-scaling-stroke;
+  }
+  #wave-speed-theory-simulator .wst-marker-current {
+    fill: var(--viz-series-1);
+    stroke: var(--background);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+  }
+  #wave-speed-theory-simulator .wst-label {
+    fill: var(--foreground);
+  }
+  #wave-speed-theory-simulator .wst-muted-label {
+    fill: var(--muted-foreground);
+  }
+  #wave-speed-theory-simulator .wst-airway-fill {
+    fill: var(--viz-series-1);
+    fill-opacity: 0.13;
+    stroke: var(--viz-series-1);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+  }
+  #wave-speed-theory-simulator .wst-alveolus {
+    fill: var(--muted);
+    stroke: var(--border);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+  }
+  #wave-speed-theory-simulator .wst-cp-line {
+    stroke: var(--viz-series-1);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+  }
+  #wave-speed-theory-simulator .wst-epp-line {
+    stroke: var(--viz-series-2);
+    stroke-width: 2;
+    stroke-dasharray: 5 4;
+    vector-effect: non-scaling-stroke;
+  }
+  #wave-speed-theory-simulator .wst-wave-arrow {
+    stroke: var(--foreground);
+    stroke-width: 1.7;
+    fill: none;
+    vector-effect: non-scaling-stroke;
+  }
+  #wave-speed-theory-simulator text {
+    font-family: inherit;
+    font-size: 12px;
+  }
+  @media (max-width: 560px) {
+    #wave-speed-theory-simulator .wst-plot-grid {
+      grid-template-columns: 1fr;
+    }
+    #wave-speed-theory-simulator .wst-symbol-legend {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    #wave-speed-theory-simulator path,
+    #wave-speed-theory-simulator line,
+    #wave-speed-theory-simulator circle {
+      transition: d 160ms ease, x1 160ms ease, x2 160ms ease, y1 160ms ease, y2 160ms ease, cx 160ms ease, cy 160ms ease;
+    }
+  }
+</style>
+
+<script>
+(() => {
+  const root = document.getElementById("wave-speed-theory-simulator");
+  if (!root) return;
+
+  const CMH2O_TO_PA = 98.0665;
+  const LPS_TO_M3S = 0.001;
+  const UPSTREAM_FRACTION = 0.4;
+  const ns = "http://www.w3.org/2000/svg";
+
+  const inputs = {
+    ppl: root.querySelector("#wst-ppl"),
+    pel: root.querySelector("#wst-pel"),
+    area: root.querySelector("#wst-area"),
+    stiffness: root.querySelector("#wst-stiffness"),
+    resistance: root.querySelector("#wst-resistance"),
+    density: root.querySelector("#wst-density")
+  };
+
+  const outputs = {
+    ppl: root.querySelector("#wst-ppl-out"),
+    pel: root.querySelector("#wst-pel-out"),
+    area: root.querySelector("#wst-area-out"),
+    stiffness: root.querySelector("#wst-stiffness-out"),
+    resistance: root.querySelector("#wst-resistance-out"),
+    density: root.querySelector("#wst-density-out")
+  };
+
+  const els = {
+    airway: root.querySelector("#wst-airway"),
+    localPlot: root.querySelector("#wst-local-plot"),
+    effortPlot: root.querySelector("#wst-effort-plot"),
+    flowValue: root.querySelector("#wst-flow-value"),
+    flowContext: root.querySelector("#wst-flow-context"),
+    speedValue: root.querySelector("#wst-speed-value"),
+    speedContext: root.querySelector("#wst-speed-context"),
+    ptmValue: root.querySelector("#wst-ptm-value"),
+    ptmContext: root.querySelector("#wst-ptm-context"),
+    state: root.querySelector("#wst-state")
+  };
+
+  function clamp(value, lo, hi) {
+    return Math.max(lo, Math.min(hi, value));
+  }
+
+  function sigmoid(z) {
+    if (z > 35) return 1 - 1e-12;
+    if (z < -35) return 1e-12;
+    return 1 / (1 + Math.exp(-z));
+  }
+
+  function params() {
+    return {
+      ppl: Number(inputs.ppl.value),
+      pel: Number(inputs.pel.value),
+      amaxMm2: Number(inputs.area.value),
+      stiffnessCm: Number(inputs.stiffness.value),
+      resistance: Number(inputs.resistance.value),
+      rho: Number(inputs.density.value)
+    };
+  }
+
+  function tube(pPa, p) {
+    const sPa = p.stiffnessCm * CMH2O_TO_PA;
+    const amax = p.amaxMm2 * 1e-6;
+    const fraction = sigmoid(pPa / sPa);
+    const area = amax * fraction;
+    const compliance = amax * fraction * (1 - fraction) / sPa;
+    return { fraction, area, compliance };
+  }
+
+  function localWave(pPa, p) {
+    const t = tube(pPa, p);
+    const safeCompliance = Math.max(t.compliance, 1e-18);
+    const c = Math.sqrt(t.area / (p.rho * safeCompliance));
+    const q = t.area * c;
+    const j = pPa + t.area / (2 * safeCompliance);
+    return { ...t, c, q, j };
+  }
+
+  function upstreamResistanceSI(p) {
+    return UPSTREAM_FRACTION * p.resistance * CMH2O_TO_PA / LPS_TO_M3S;
+  }
+
+  function bisection(fn, lo, hi) {
+    let flo = fn(lo);
+    let fhi = fn(hi);
+    if (!Number.isFinite(flo) || !Number.isFinite(fhi)) return (lo + hi) / 2;
+    if (flo === 0) return lo;
+    if (fhi === 0) return hi;
+    for (let i = 0; i < 90; i += 1) {
+      const mid = (lo + hi) / 2;
+      const fm = fn(mid);
+      if ((flo <= 0 && fm <= 0) || (flo >= 0 && fm >= 0)) {
+        lo = mid;
+        flo = fm;
+      } else {
+        hi = mid;
+        fhi = fm;
+      }
+    }
+    return (lo + hi) / 2;
+  }
+
+  function limitingState(p) {
+    const pelPa = p.pel * CMH2O_TO_PA;
+    const sPa = p.stiffnessCm * CMH2O_TO_PA;
+    const rup = upstreamResistanceSI(p);
+    const balance = pPa => {
+      const w = localWave(pPa, p);
+      return w.j + rup * w.q - pelPa;
+    };
+    const pcrit = bisection(balance, -25 * sPa, 25 * sPa);
+    const wcrit = localWave(pcrit, p);
+    return { pcrit, ...wcrit };
+  }
+
+  function criticalPForHead(jPa, p) {
+    const sPa = p.stiffnessCm * CMH2O_TO_PA;
+    return bisection(pPa => localWave(pPa, p).j - jPa, -25 * sPa, Math.max(jPa, 25 * sPa));
+  }
+
+  function isoFlow(pPa, jPa, p) {
+    const t = tube(pPa, p);
+    const head = Math.max(0, jPa - pPa);
+    return t.area * Math.sqrt(2 * head / p.rho);
+  }
+
+  function solveModel(p) {
+    const limit = limitingState(p);
+    const qLimitLps = limit.q / LPS_TO_M3S;
+    const qDriveLps = (p.pel + p.ppl) / p.resistance;
+    const qActualLps = Math.min(qDriveLps, qLimitLps);
+    const qActual = qActualLps * LPS_TO_M3S;
+    const jActual = p.pel * CMH2O_TO_PA - upstreamResistanceSI(p) * qActual;
+    const pAtLocalMax = criticalPForHead(jActual, p);
+    const maxAtHead = localWave(pAtLocalMax, p);
+    const flowLimited = qDriveLps >= qLimitLps * 0.9995;
+    let pActual = pAtLocalMax;
+    if (!flowLimited && qActual < maxAtHead.q * 0.999999) {
+      const high = Math.max(pAtLocalMax + 1e-8, jActual - 1e-8);
+      pActual = bisection(pPa => isoFlow(pPa, jActual, p) - qActual, pAtLocalMax, high);
+    }
+    const local = tube(pActual, p);
+    const c = Math.sqrt(local.area / (p.rho * Math.max(local.compliance, 1e-18)));
+    const u = qActual / Math.max(local.area, 1e-18);
+    const speedIndex = clamp(u / c, 0, 1.5);
+    const eppFraction = p.pel / Math.max(p.pel + p.ppl, 1e-6);
+    const cpFraction = clamp((p.pel - limit.pcrit / CMH2O_TO_PA) / Math.max(p.pel + p.ppl, 1e-6), 0.04, 0.96);
+    return {
+      p,
+      limit,
+      qLimitLps,
+      qDriveLps,
+      qActualLps,
+      qActual,
+      jActual,
+      pAtLocalMax,
+      maxAtHead,
+      pActual,
+      local,
+      c,
+      u,
+      speedIndex,
+      flowLimited,
+      eppFraction,
+      cpFraction
+    };
+  }
+
+  function svgEl(name, attrs = {}, textValue = "") {
+    const node = document.createElementNS(ns, name);
+    Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, String(value)));
+    if (textValue) node.textContent = textValue;
+    return node;
+  }
+
+  function clearSvg(svg, width, height, title, description) {
+    svg.replaceChildren();
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.appendChild(svgEl("title", {}, title));
+    svg.appendChild(svgEl("desc", {}, description));
+  }
+
+  function pathFrom(points, xFn, yFn) {
+    return points.map((d, i) => `${i ? "L" : "M"}${xFn(d).toFixed(2)},${yFn(d).toFixed(2)}`).join(" ");
+  }
+
+  function tickValues(min, max, count) {
+    const span = Math.max(max - min, 1e-9);
+    const raw = span / Math.max(count - 1, 1);
+    const power = Math.pow(10, Math.floor(Math.log10(raw)));
+    const scaled = raw / power;
+    const step = (scaled <= 1 ? 1 : scaled <= 2 ? 2 : scaled <= 5 ? 5 : 10) * power;
+    const start = Math.ceil(min / step) * step;
+    const values = [];
+    for (let v = start; v <= max + step * 0.001; v += step) values.push(v);
+    return values;
+  }
+
+  function addAxes(svg, box, xDomain, yDomain, xLabel, yLabel, rightLabel = "") {
+    const x = value => box.left + (value - xDomain[0]) / (xDomain[1] - xDomain[0]) * box.width;
+    const y = value => box.top + box.height - (value - yDomain[0]) / (yDomain[1] - yDomain[0]) * box.height;
+    const xTicks = tickValues(xDomain[0], xDomain[1], 5);
+    const yTicks = tickValues(yDomain[0], yDomain[1], 5);
+    yTicks.forEach(value => {
+      svg.appendChild(svgEl("line", { x1: box.left, x2: box.left + box.width, y1: y(value), y2: y(value), class: "wst-grid" }));
+      svg.appendChild(svgEl("text", { x: box.left - 8, y: y(value) + 4, "text-anchor": "end", class: "wst-muted-label" }, Number(value.toFixed(2)).toString()));
+    });
+    xTicks.forEach(value => {
+      svg.appendChild(svgEl("line", { x1: x(value), x2: x(value), y1: box.top, y2: box.top + box.height, class: "wst-grid" }));
+      svg.appendChild(svgEl("text", { x: x(value), y: box.top + box.height + 19, "text-anchor": "middle", class: "wst-muted-label" }, Number(value.toFixed(2)).toString()));
+    });
+    svg.appendChild(svgEl("line", { x1: box.left, x2: box.left, y1: box.top, y2: box.top + box.height, class: "wst-axis" }));
+    svg.appendChild(svgEl("line", { x1: box.left, x2: box.left + box.width, y1: box.top + box.height, y2: box.top + box.height, class: "wst-axis" }));
+    svg.appendChild(svgEl("text", { x: box.left + box.width / 2, y: box.top + box.height + 41, "text-anchor": "middle", class: "wst-label" }, xLabel));
+    svg.appendChild(svgEl("text", { x: 13, y: box.top + box.height / 2, transform: `rotate(-90 13 ${box.top + box.height / 2})`, "text-anchor": "middle", class: "wst-label" }, yLabel));
+    if (rightLabel) {
+      svg.appendChild(svgEl("text", { x: box.left + box.width + 37, y: box.top + box.height / 2, transform: `rotate(90 ${box.left + box.width + 37} ${box.top + box.height / 2})`, "text-anchor": "middle", class: "wst-label" }, rightLabel));
+    }
+    return { x, y };
+  }
+
+  function addLineKey(svg, x, y, lineClass, label) {
+    svg.appendChild(svgEl("line", { x1: x, x2: x + 28, y1: y, y2: y, class: lineClass }));
+    svg.appendChild(svgEl("text", { x: x + 36, y: y + 4, class: "wst-label" }, label));
+  }
+
+  function renderAirway(model) {
+    const svg = els.airway;
+    const width = Math.max(320, Math.round(svg.getBoundingClientRect().width || 720));
+    const height = 235;
+    clearSvg(svg, width, height, "Simplified collapsible airway", "The airway narrows as transmural pressure falls. The equal-pressure point is where airway and pleural pressures cross. At the choke point, upstream wave propagation stops when gas velocity equals wave speed.");
+
+    const markerId = "wst-arrowhead";
+    const defs = svgEl("defs");
+    const marker = svgEl("marker", { id: markerId, markerWidth: 8, markerHeight: 8, refX: 7, refY: 3, orient: "auto", markerUnits: "strokeWidth" });
+    marker.appendChild(svgEl("path", { d: "M0,0 L0,6 L7,3 z", fill: "var(--foreground)" }));
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    const x0 = 70;
+    const x1 = width - 34;
+    const yCenter = 70;
+    const points = Array.from({ length: 81 }, (_, i) => {
+      const t = i / 80;
+      const ptmCm = model.p.pel - (model.p.pel + model.p.ppl) * t;
+      const fraction = sigmoid(ptmCm / model.p.stiffnessCm);
+      const inletFraction = sigmoid(model.p.pel / model.p.stiffnessCm);
+      const radius = clamp(27 * Math.sqrt(fraction / inletFraction), 4, 28);
+      return { t, x: x0 + t * (x1 - x0), radius };
+    });
+    const top = points.map(d => ({ x: d.x, y: yCenter - d.radius }));
+    const bottom = points.slice().reverse().map(d => ({ x: d.x, y: yCenter + d.radius }));
+    const airwayD = pathFrom(top, d => d.x, d => d.y) + " " + bottom.map((d, i) => `${i ? "L" : "L"}${d.x.toFixed(2)},${d.y.toFixed(2)}`).join(" ") + " Z";
+    svg.appendChild(svgEl("ellipse", { cx: 40, cy: yCenter, rx: 31, ry: 36, class: "wst-alveolus" }));
+    svg.appendChild(svgEl("path", { d: airwayD, class: "wst-airway-fill" }));
+    svg.appendChild(svgEl("text", { x: 39, y: yCenter + 4, "text-anchor": "middle", class: "wst-label" }, "alveolus"));
+    svg.appendChild(svgEl("text", { x: x1, y: yCenter + 4, "text-anchor": "end", class: "wst-label" }, "mouth"));
+
+    const xEpp = x0 + model.eppFraction * (x1 - x0);
+    const xCp = x0 + model.cpFraction * (x1 - x0);
+    svg.appendChild(svgEl("text", { x: x0 + (x1 - x0) * 0.22, y: 15, "text-anchor": "middle", class: "wst-label" }, "UPSTREAM — alveolar side"));
+    svg.appendChild(svgEl("text", { x: x0 + (x1 - x0) * 0.76, y: 15, "text-anchor": "middle", class: "wst-label" }, "DOWNSTREAM — mouth side"));
+    svg.appendChild(svgEl("line", { x1: xEpp, x2: xEpp, y1: 34, y2: 211, class: "wst-epp-line" }));
+    svg.appendChild(svgEl("text", { x: xEpp, y: 139, "text-anchor": "middle", class: "wst-label" }, "EPP: Ptm = 0"));
+    svg.appendChild(svgEl("line", { x1: xCp, x2: xCp, y1: 28, y2: 211, class: model.flowLimited ? "wst-cp-line" : "wst-reference-line" }));
+    svg.appendChild(svgEl("text", { x: xCp, y: 31, "text-anchor": "middle", class: "wst-label" }, model.flowLimited ? "CHOKE POINT (CP): u = c" : "potential choke point"));
+
+    const flowStart = x0 + Math.min(92, (x1 - x0) * 0.2);
+    const flowEnd = x1 - Math.min(54, (x1 - x0) * 0.12);
+    svg.appendChild(svgEl("line", { x1: flowStart, x2: flowEnd, y1: yCenter, y2: yCenter, class: "wst-wave-arrow", "marker-end": `url(#${markerId})` }));
+    svg.appendChild(svgEl("text", { x: (flowStart + flowEnd) / 2, y: yCenter - 8, "text-anchor": "middle", class: "wst-label" }, "expiratory gas velocity u = V̇/A → mouth"));
+
+    const waveY = 112;
+    const downstreamStart = clamp(xCp + 8, x0 + 40, x1 - 72);
+    svg.appendChild(svgEl("line", { x1: downstreamStart, x2: downstreamStart + 58, y1: waveY, y2: waveY, class: "wst-wave-arrow", "marker-end": `url(#${markerId})` }));
+    svg.appendChild(svgEl("text", { x: downstreamStart + 29, y: waveY - 7, "text-anchor": "middle", class: "wst-muted-label" }, "wave: u + c"));
+    const upstreamLength = Math.max(0, 52 * (1 - clamp(model.speedIndex, 0, 1)));
+    if (upstreamLength > 4) {
+      svg.appendChild(svgEl("line", { x1: xCp - 7, x2: xCp - 7 - upstreamLength, y1: waveY, y2: waveY, class: "wst-wave-arrow", "marker-end": `url(#${markerId})` }));
+      svg.appendChild(svgEl("text", { x: xCp - 12, y: waveY - 7, "text-anchor": "end", class: "wst-muted-label" }, "u − c < 0"));
+    } else {
+      svg.appendChild(svgEl("line", { x1: xCp - 8, x2: xCp - 8, y1: waveY - 6, y2: waveY + 6, class: "wst-cp-line" }));
+      svg.appendChild(svgEl("text", { x: xCp - 14, y: waveY - 7, "text-anchor": "end", class: "wst-muted-label" }, "u − c = 0: upstream wave stops"));
+    }
+
+    const chartTop = 146;
+    const chartBottom = 211;
+    const pressureMax = Math.max(model.p.pel + model.p.ppl, 1);
+    const py = pressure => chartBottom - pressure / pressureMax * (chartBottom - chartTop);
+    svg.appendChild(svgEl("line", { x1: x0, x2: x1, y1: chartBottom, y2: chartBottom, class: "wst-axis" }));
+    svg.appendChild(svgEl("line", { x1: x0, x2: x1, y1: py(model.p.ppl), y2: py(model.p.ppl), class: "wst-second-line" }));
+    svg.appendChild(svgEl("line", { x1: x0, x2: x1, y1: py(model.p.pel + model.p.ppl), y2: py(0), class: "wst-main-line" }));
+    svg.appendChild(svgEl("text", { x: x0 + 7, y: py(model.p.pel + model.p.ppl) + 13, class: "wst-label" }, "airway pressure Paw"));
+    svg.appendChild(svgEl("text", { x: x1 - 5, y: py(model.p.ppl) - 6, "text-anchor": "end", class: "wst-label" }, "pleural pressure Ppl"));
+    svg.appendChild(svgEl("text", { x: 10, y: chartTop + 6, class: "wst-muted-label" }, `${pressureMax.toFixed(0)} cmH₂O`));
+    svg.appendChild(svgEl("text", { x: 10, y: chartBottom + 4, class: "wst-muted-label" }, "0"));
+  }
+
+  function renderLocalPlot(model) {
+    const svg = els.localPlot;
+    const width = Math.max(300, Math.round(svg.getBoundingClientRect().width || 350));
+    const height = 290;
+    clearSvg(svg, width, height, "Local wave-speed mechanics", "The solid curve is flow permitted by Bernoulli acceleration at a fixed pressure head. The dashed curve is the airway tube law. Their interaction produces a maximum where gas velocity equals wave speed.");
+    const box = { left: 52, top: 55, width: width - 104, height: 170 };
+    const pcritCm = model.pAtLocalMax / CMH2O_TO_PA;
+    const pActualCm = model.pActual / CMH2O_TO_PA;
+    const jCm = model.jActual / CMH2O_TO_PA;
+    const xmin = Math.min(-4 * model.p.stiffnessCm, pcritCm - 3 * model.p.stiffnessCm, pActualCm - 2 * model.p.stiffnessCm);
+    const xmax = Math.max(jCm + 0.3, pcritCm + 3 * model.p.stiffnessCm, pActualCm + 2 * model.p.stiffnessCm);
+    const curve = Array.from({ length: 161 }, (_, i) => {
+      const pCm = xmin + (xmax - xmin) * i / 160;
+      return {
+        pCm,
+        q: isoFlow(pCm * CMH2O_TO_PA, model.jActual, model.p) / LPS_TO_M3S,
+        area: tube(pCm * CMH2O_TO_PA, model.p).area * 1e6
+      };
+    });
+    const ymax = Math.max(model.maxAtHead.q / LPS_TO_M3S * 1.18, 0.5);
+    const scales = addAxes(svg, box, [xmin, xmax], [0, ymax], "Ptm (cmH₂O)", "Flow (L/s)", "Area (mm²)");
+    const areaY = value => box.top + box.height - value / (model.p.amaxMm2 * 1.05) * box.height;
+    addLineKey(svg, box.left, 17, "wst-main-line", "Flow Q at fixed J (left axis)");
+    addLineKey(svg, box.left, 38, "wst-second-line", "Airway area A(Ptm) (right axis)");
+    svg.appendChild(svgEl("path", { d: pathFrom(curve, d => scales.x(d.pCm), d => scales.y(d.q)), class: "wst-main-line" }));
+    svg.appendChild(svgEl("path", { d: pathFrom(curve, d => scales.x(d.pCm), d => areaY(d.area)), class: "wst-second-line" }));
+
+    svg.appendChild(svgEl("line", { x1: box.left + box.width, x2: box.left + box.width, y1: box.top, y2: box.top + box.height, class: "wst-axis" }));
+    tickValues(0, model.p.amaxMm2 * 1.05, 4).forEach(value => {
+      svg.appendChild(svgEl("text", { x: box.left + box.width + 7, y: areaY(value) + 4, class: "wst-muted-label" }, Number(value.toFixed(0)).toString()));
+    });
+
+    const critical = localWave(model.pAtLocalMax, model.p);
+    const criticalQ = critical.q / LPS_TO_M3S;
+    const criticalArea = critical.area * 1e6;
+    svg.appendChild(svgEl("line", { x1: scales.x(pcritCm), x2: scales.x(pcritCm), y1: box.top, y2: box.top + box.height, class: "wst-reference-line" }));
+    svg.appendChild(svgEl("circle", { cx: scales.x(pcritCm), cy: scales.y(criticalQ), r: 5, class: "wst-marker-main" }));
+    svg.appendChild(svgEl("text", { x: scales.x(pcritCm) + 7, y: scales.y(criticalQ) - 8, class: "wst-label" }, "u = c"));
+    svg.appendChild(svgEl("circle", { cx: scales.x(pActualCm), cy: scales.y(model.qActualLps), r: 4.5, class: "wst-marker-current" }));
+    if (!model.flowLimited) {
+      const currentOnRight = scales.x(pActualCm) > box.left + box.width * 0.7;
+      svg.appendChild(svgEl("text", {
+        x: scales.x(pActualCm) + (currentOnRight ? -7 : 7),
+        y: scales.y(model.qActualLps) + 16,
+        "text-anchor": currentOnRight ? "end" : "start",
+        class: "wst-label"
+      }, "current state"));
+    }
+
+    const complianceMm2PerCm = critical.compliance * 1e6 * CMH2O_TO_PA;
+    const tangentDx = Math.min(model.p.stiffnessCm * 1.6, (xmax - xmin) * 0.16);
+    const tangentP1 = clamp(pcritCm - tangentDx, xmin, xmax);
+    const tangentP2 = clamp(pcritCm + tangentDx, xmin, xmax);
+    const tangentA1 = criticalArea + complianceMm2PerCm * (tangentP1 - pcritCm);
+    const tangentA2 = criticalArea + complianceMm2PerCm * (tangentP2 - pcritCm);
+    svg.appendChild(svgEl("line", { x1: scales.x(tangentP1), y1: areaY(tangentA1), x2: scales.x(tangentP2), y2: areaY(tangentA2), class: "wst-tangent" }));
+    svg.appendChild(svgEl("text", {
+      x: scales.x(tangentP2),
+      y: areaY(tangentA2) - 6,
+      "text-anchor": "end",
+      class: "wst-muted-label"
+    }, "slope = Caw"));
+  }
+
+  function renderEffortPlot(model) {
+    const svg = els.effortPlot;
+    const width = Math.max(300, Math.round(svg.getBoundingClientRect().width || 350));
+    const height = 290;
+    clearSvg(svg, width, height, "Flow becomes independent of expiratory effort", "The open-airway prediction rises with pleural pressure. The modeled flow reaches a wave-speed ceiling and then remains constant as effort increases.");
+    const box = { left: 52, top: 55, width: width - 74, height: 170 };
+    const maxEffort = 40;
+    const data = Array.from({ length: 121 }, (_, i) => {
+      const effort = maxEffort * i / 120;
+      const drive = (model.p.pel + effort) / model.p.resistance;
+      return { effort, drive, actual: Math.min(drive, model.qLimitLps) };
+    });
+    const ymax = Math.max(data[data.length - 1].drive, model.qLimitLps) * 1.06;
+    const scales = addAxes(svg, box, [0, maxEffort], [0, ymax], "Expiratory effort Ppl (cmH₂O)", "Mouth flow (L/s)");
+    addLineKey(svg, box.left, 17, "wst-main-line", "Actual mouth flow");
+    addLineKey(svg, box.left, 38, "wst-second-line", "Prediction if the airway stayed open");
+    svg.appendChild(svgEl("path", { d: pathFrom(data, d => scales.x(d.effort), d => scales.y(d.drive)), class: "wst-second-line" }));
+    svg.appendChild(svgEl("path", { d: pathFrom(data, d => scales.x(d.effort), d => scales.y(d.actual)), class: "wst-main-line" }));
+    svg.appendChild(svgEl("line", { x1: box.left, x2: box.left + box.width, y1: scales.y(model.qLimitLps), y2: scales.y(model.qLimitLps), class: "wst-reference-line" }));
+    svg.appendChild(svgEl("circle", { cx: scales.x(model.p.ppl), cy: scales.y(model.qActualLps), r: 5, class: "wst-marker-current" }));
+    const currentOnRight = scales.x(model.p.ppl) > box.left + box.width * 0.76;
+    svg.appendChild(svgEl("text", {
+      x: scales.x(model.p.ppl) + (currentOnRight ? -7 : 7),
+      y: scales.y(model.qActualLps) + 16,
+      "text-anchor": currentOnRight ? "end" : "start",
+      class: "wst-label"
+    }, "current setting"));
+    const plateauX = clamp(scales.x(Math.max(0, model.qLimitLps * model.p.resistance - model.p.pel)), box.left + 6, box.left + box.width - 70);
+    svg.appendChild(svgEl("text", { x: plateauX + 6, y: scales.y(model.qLimitLps) - 7, class: "wst-label" }, "wave-speed ceiling"));
+  }
+
+  function updateText(model) {
+    outputs.ppl.textContent = `${model.p.ppl.toFixed(1)} cmH2O`;
+    outputs.pel.textContent = `${model.p.pel.toFixed(1)} cmH2O`;
+    outputs.area.textContent = `${model.p.amaxMm2.toFixed(0)} mm²`;
+    outputs.stiffness.textContent = `${model.p.stiffnessCm.toFixed(1)} cmH2O`;
+    outputs.resistance.textContent = `${model.p.resistance.toFixed(1)} cmH2O/L/s`;
+    outputs.density.textContent = `${model.p.rho.toFixed(2)} kg/m³`;
+
+    els.flowValue.textContent = `${model.qActualLps.toFixed(2)} L/s`;
+    els.flowContext.textContent = `wave-speed ceiling ${model.qLimitLps.toFixed(2)} L/s`;
+    els.speedValue.textContent = model.speedIndex.toFixed(2);
+    els.speedContext.textContent = model.flowLimited ? "critical: upstream wave speed is zero" : "subcritical: pressure waves still travel upstream";
+    els.ptmValue.textContent = `${(model.pActual / CMH2O_TO_PA).toFixed(2)} cmH2O`;
+    els.ptmContext.textContent = `critical value ${(model.pAtLocalMax / CMH2O_TO_PA).toFixed(2)} cmH2O`;
+    const relation = model.cpFraction < model.eppFraction ? "upstream of" : model.cpFraction > model.eppFraction ? "downstream of" : "at";
+    els.state.textContent = model.flowLimited
+      ? `Flow limited: added effort compresses the downstream airway; the choke point is ${relation} the equal-pressure point in this tube-law state.`
+      : `Not yet flow limited: increasing effort still raises flow, and downstream pressure changes can propagate back toward the alveolus.`;
+  }
+
+  function render() {
+    const model = solveModel(params());
+    updateText(model);
+    renderAirway(model);
+    renderLocalPlot(model);
+    renderEffortPlot(model);
+  }
+
+  let resizeTimer = 0;
+  Object.values(inputs).forEach(input => input.addEventListener("input", render));
+  if (typeof ResizeObserver !== "undefined") {
+    const observer = new ResizeObserver(() => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(render, 30);
+    });
+    observer.observe(root);
+  }
+  render();
+})();
+</script>
+
+<script id="codex-visualization-tooltip">/* oxlint-disable typescript/no-unsafe-argument, typescript/no-unsafe-call, typescript/no-unsafe-return */
+// Runs inside the visualization sandbox, not the host webview.
+(() => {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set(["top", "right", "bottom", "left"]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+
+  const getTrigger = (target) =>
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest("[data-tooltip]")
+      : null;
+  const containsTarget = (trigger, target) =>
+    target?.nodeType != null && trigger.contains(target);
+  const getContent = (trigger) =>
+    trigger.getAttribute("data-tooltip")?.trim() ?? "";
+  const getPlacement = (trigger) => {
+    const placement = trigger.getAttribute("data-tooltip-placement");
+    return tooltipPlacements.has(placement) ? placement : "top";
+  };
+  const getTooltip = () => {
+    if (tooltip == null) {
+      tooltip = document.createElement("div");
+      tooltip.id = tooltipId;
+      tooltip.className = "tooltip";
+      tooltip.setAttribute("role", "tooltip");
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) => {
+    const ids = new Set(
+      (trigger.getAttribute("aria-describedby") ?? "")
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute("aria-describedby");
+    } else {
+      trigger.setAttribute("aria-describedby", [...ids].join(" "));
+    }
+  };
+  const clearOpenTimeout = () => {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) => {
+    clearOpenTimeout();
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) => {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              "--tooltip-available-width",
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              "--tooltip-available-height",
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: "fixed",
+    })
+      .then(({ x, y }) => {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = "visible";
+      })
+      .catch(() => {
+        if (activeTrigger === trigger && request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) => {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = "hidden";
+    floating.style.transform = "translate(0, 0)";
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () => {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) => {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() < skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() => {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) => {
+    if (event.pointerType === "touch") {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handleLeave = (event) => {
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) => {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(":focus-visible")) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) => {
+    if (event.key === "Escape") {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) => {
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () => {
+    closeTooltip(false);
+    document.removeEventListener("pointerover", handlePointerOpen);
+    document.removeEventListener("pointerout", handleLeave);
+    document.removeEventListener("focusin", handleFocusIn);
+    document.removeEventListener("focusout", handleLeave);
+    document.removeEventListener("keydown", handleKeyDown);
+    document.removeEventListener("contextmenu", handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener("pointerover", handlePointerOpen);
+  document.addEventListener("pointerout", handleLeave);
+  document.addEventListener("focusin", handleFocusIn);
+  document.addEventListener("focusout", handleLeave);
+  document.addEventListener("keydown", handleKeyDown);
+  document.addEventListener("contextmenu", handleContextMenu);
+  window.addEventListener("pagehide", destroy, { once: true });
+})();
+</script>
+<script id="codex-visualization-lucide-initialization">(() => {
+  const initialize = () => {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById("codex-visualization-lucide")
+    ?.addEventListener("load", initialize, { once: true });
+})();
+</script>
+</body>
+</html>
